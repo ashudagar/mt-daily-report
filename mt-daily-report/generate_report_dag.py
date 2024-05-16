@@ -72,12 +72,9 @@ with DAG(
         # mysql_data = pd.read_sql_query(mysql_query, mysql_engine)
 
         mysql_result = mysql_conn.execute(text(mysql_query))
-        # mysql_data, mysql_keys = mysql_result.fetchall(), mysql_result.keys()
         mysql_data = pd.DataFrame(mysql_result.fetchall(), columns=mysql_result.keys())
-        print(mysql_data)
         mysql_conn.close()
         print("Data is successfully fetched from mysql")
-        # return mysql_data, mysql_keys
         # Push data to XCom
         ti.xcom_push(key='mysql_data', value=mysql_data)
 
@@ -101,12 +98,9 @@ with DAG(
         # pg_data = pd.read_sql_query(pg_query, postgres_engine)
 
         postgres_result = postgres_conn.execute(text(pg_query))
-        # pg_data, pg_keys = postgres_result.fetchall(), postgres_result.keys()
         pg_data = pd.DataFrame(postgres_result.fetchall(), columns=postgres_result.keys())
-        print(pg_data)
         postgres_conn.close()
         print("Data is successfully fetched from postgres")
-        # return pg_data, pg_keys
         # Push data to XCom
         ti.xcom_push(key='pg_data', value=pg_data)
 
@@ -115,10 +109,20 @@ with DAG(
         """Combines and transforms data from both sources."""
         mysql_data = ti.xcom_pull(task_ids='extract_data.extract_mysql_data', key='mysql_data')
         pg_data = ti.xcom_pull(task_ids='extract_data.extract_postgres_data', key='pg_data')
-        #
-        # mysql_data_df = pd.DataFrame(mysql_data, columns=mysql_keys)
-        #
-        # pg_data_df = pd.DataFrame(pg_data, columns=pg_keys)
+
+        # clean data
+        # Remove duplicates
+        mysql_data.drop_duplicates(inplace=True)
+        pg_data.drop_duplicates(inplace=True)
+
+        # Fill missing usernames with 'Unknown'
+        pg_data.fillna({"user_name": "Unknown"}, inplace=True)
+
+        # Ensure completion_date is in correct format
+        mysql_data['completion_date'] = pd.to_datetime(mysql_data['completion_date'], errors='coerce')
+
+        # Drop rows with invalid completion_date
+        mysql_data.dropna(subset=['completion_date'], inplace=True)
 
         # Merge the data based on user_id
         merged_data = pd.merge(mysql_data, pg_data, on='user_id')
@@ -132,7 +136,6 @@ with DAG(
                      'lessons_completed': 'Number of lessons completed'},
             inplace=True)
         print(f"Data is successfully transformed in below format \n {report_data}")
-        # return report_data
         # Push transformed data to XCom
         ti.xcom_push(key='report_data', value=report_data.to_dict())
 
@@ -143,7 +146,6 @@ with DAG(
         csv_file = CSV_FILE_NAME + datetime.now().strftime("-%Y-%m-%d_%H-%M-%S") + ".csv"
         report_data.to_csv(csv_file, index=False)
         print(f"{csv_file} is successfully generated")
-        # return csv_file
         # Push CSV file path to XCom
         ti.xcom_push(key='csv_file', value=csv_file)
 
@@ -258,28 +260,24 @@ with DAG(
         task_id='transform_data',
         provide_context=True,
         python_callable=transform_data,
-        # op_args=[extract_postgres_data.output, extract_mysql_data.output],
     )
 
     # Generate CSV report
     generate_csv_report = PythonOperator(
         task_id='generate_csv_report',
         python_callable=generate_csv_report,
-        # op_args=[transform_data.output],
     )
 
     # Upload CSV to S3
     upload_csv_to_s3 = PythonOperator(
         task_id='upload_csv_to_s3',
         python_callable=upload_to_s3,
-        # op_args=[generate_csv_report.output],
     )
 
     # Send Email
     send_ses_email = PythonOperator(
         task_id='send_ses_email',
         python_callable=send_email,
-        # op_args=[generate_csv_report.output],
     )
 
     [extract_postgres_data, extract_mysql_data] >> transform_data >> generate_csv_report >> [upload_csv_to_s3,

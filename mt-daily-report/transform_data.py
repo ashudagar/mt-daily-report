@@ -17,6 +17,20 @@ def transform_data():
 
     pg_data = pd.DataFrame(pg_data, columns=pg_keys)
 
+    # clean data
+    # Remove duplicates
+    mysql_data.drop_duplicates(inplace=True)
+    pg_data.drop_duplicates(inplace=True)
+
+    # Fill missing usernames with 'Unknown'
+    pg_data.fillna({"user_name": "Unknown"}, inplace=True)
+
+    # Ensure completion_date is in correct format
+    mysql_data['completion_date'] = pd.to_datetime(mysql_data['completion_date'], errors='coerce')
+
+    # Drop rows with invalid completion_date
+    mysql_data.dropna(subset=['completion_date'], inplace=True)
+
     # Merge the data based on user_id
     merged_data = pd.merge(mysql_data, pg_data, on='user_id')
 

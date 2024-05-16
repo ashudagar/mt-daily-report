@@ -19,17 +19,17 @@ services:
       - "3306:3306"
     networks:
       - my_network
-  airflow:
-    build:
-      context: ../
-      dockerfile: ./setup/DockerFile-Airflow
-    container_name: airflow
-    env_file: .env
-    ports:
-      - "8080:8080"
-    networks:
-      - my_network
-    restart: always
+#  airflow:
+#    build:
+#      context: ../
+#      dockerfile: ./setup/DockerFile-Airflow
+#    container_name: airflow
+#    env_file: .env
+#    ports:
+#      - "8080:8080"
+#    networks:
+#      - my_network
+#    restart: always
 
 networks:
   my_network:
