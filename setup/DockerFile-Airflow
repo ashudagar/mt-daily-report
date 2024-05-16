@@ -1,0 +1,21 @@
+FROM apache/airflow:2.5.1-python3.9
+
+USER airflow
+
+# Copy requirements file
+COPY ../requirements.txt .
+
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY ../mt-daily-report/generate_report_dag.py /opt/airflow/dags/
+COPY ./setup/.env /opt/airflow/dags/.env
+
+# Ensure Airflow picks up the environment variables
+ENV AIRFLOW__CORE__LOAD_EXAMPLES=False
+# ENV AIRFLOW__CORE__FERNET_KEY=abc123
+# ENV AIRFLOW__WEBSERVER__SECRET_KEY=abc1234
+
+# Use bash as the default entrypoint
+ENTRYPOINT ["bash", "-c"]
+CMD ["airflow standalone"]

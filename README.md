@@ -1,22 +1,19 @@
 ## Generate Daily Report ##
 
-    This project is generating daily repots detailing the 
-    number of lesson completed on daily basis by 
+    This project is generating daily repots detailing the number of lesson completed on daily basis by 
     each of its active user.
-    This report is in the CSV format with the following 
-    columns - Name, Number of lessons completed, Date
+    This report is in the CSV format with the following columns - Name, Number of lessons completed, Date
 
-    System collects the data from multiple sources like
-    Postgres & MySql and then using Pandas, it transforms
+    System collects the data from multiple sources like Postgres & MySql and then using Pandas, it transforms
     the data in required format and save it in a csv file.
 
-    Later, this csv file has been uploaded to S3 and sent 
-    over to the configured recipients email too.
+    Later, this csv file has been uploaded to S3 and sent over to the configured recipients email too.
 
 ### How to run
-This project can be run in 2 ways:
-1. Directly using Python Script - manually or setting up a cron job
-2. Using the Apache Airflow dag - for continuous and lager data sets
+This project can be run in 3 ways:
+1. Docker Image - using docker with all inbuilt
+2. Directly using Python Script - manually or setting up a cron job
+3. Using the Apache Airflow dag - for continuous and lager data sets
 
 ### Prerequisites
 To run this project following prerequisites are required:
@@ -28,18 +25,22 @@ To run this project following prerequisites are required:
 
 ### Project Setup ###
 #### Main setup ####
+Following steps will also setup the docker image for apache airflow too mentioned in step-1 of How to run.
     1. clone the repo
     2. Navigate to the `setup` directory.
     3. Copy the environment file and populate it with the required values:
         ``` bash
             cd setup
-            cp .env.example .env
+            populate all variable values in .env file
         ```
     4. Launch Docker Images
         Start the docker containers:
         ``` bash
             docker-compose up --build
         '''
+    5. create airflow user to login into the airflow docker container
+	airflow users  create --role Admin --username ashu --email ashu --firstname ashu --lastname ashu --password ashu
+	Try login into the airflow server with creds ashu:ashu on http://localhost:8080
 
 
 
@@ -64,4 +65,6 @@ To run this project following prerequisites are required:
         copy the above 2 files at this location
         refresh your browser at http://localhost:8080
         run the daily_lesson_report_dag
+
+
 Boom, Check your inbox for the daily completed lesson report for each user.
